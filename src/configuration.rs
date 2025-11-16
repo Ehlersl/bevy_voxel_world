@@ -67,6 +67,16 @@ pub trait VoxelWorldConfig: Resource + Default + Clone {
         1
     }
 
+    /// Minimum world height (inclusive), in voxels.
+    fn min_world_y(&self) -> i32 {
+        i32::MIN
+    }
+
+    /// Maximum world height (exclusive), in voxels.
+    fn max_world_y(&self) -> i32 {
+        i32::MAX
+    }
+
     /// Strategy for despawning chunks
     fn chunk_despawn_strategy(&self) -> ChunkDespawnStrategy {
         ChunkDespawnStrategy::default()

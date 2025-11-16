@@ -157,8 +157,16 @@ impl<C: VoxelWorldConfig> VoxelWorld<'_, C> {
         let chunk_map = self.chunk_map.get_map();
         let write_buffer = self.voxel_write_buffer.clone();
         let modified_voxels = self.modified_voxels.clone();
+        let configuration = self.configuration.clone();
 
         Arc::new(move |position| {
+            let min_y = configuration.min_world_y();
+            let max_y = configuration.max_world_y();
+
+            if position.y < min_y || position.y >= max_y {
+                return WorldVoxel::Unset;
+            }
+
             let (chunk_pos, vox_pos) = get_chunk_voxel_position(position);
 
             if let Some(voxel) = write_buffer

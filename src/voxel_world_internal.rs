@@ -116,6 +116,9 @@ where
 
         let viewport_size = camera.physical_viewport_size().unwrap_or_default();
 
+        let min_y = configuration.min_world_y();
+        let max_y = configuration.max_world_y();
+
         let mut visited = HashSet::new();
         let mut chunks_deque = VecDeque::with_capacity(
             configuration.spawning_rays() * spawning_distance as usize,
@@ -133,17 +136,24 @@ where
                 let mut t = 0.0;
                 while t < (spawning_distance * CHUNK_SIZE_I) as f32 {
                     let chunk_pos = current.as_ivec3() / CHUNK_SIZE_I;
-                    if let Some(chunk) = ChunkMap::<C, C::MaterialIndex>::get(
-                        &chunk_pos,
-                        &chunk_map_read_lock,
-                    ) {
-                        if chunk.is_full {
-                            // If we hit a full chunk, we can stop the ray early
-                            break;
+
+                    let chunk_min_y = chunk_pos.y * CHUNK_SIZE_I;
+                    let chunk_max_y = chunk_min_y + CHUNK_SIZE_I;
+
+                    if chunk_max_y > min_y && chunk_min_y < max_y {
+                        if let Some(chunk) = ChunkMap::<C, C::MaterialIndex>::get(
+                            &chunk_pos,
+                            &chunk_map_read_lock,
+                        ) {
+                            if chunk.is_full {
+                                // If we hit a full chunk, we can stop the ray early
+                                break;
+                            }
+                        } else {
+                            queue.push_back(chunk_pos);
                         }
-                    } else {
-                        queue.push_back(chunk_pos);
                     }
+
                     t += CHUNK_SIZE_F;
                     current = ray.origin + ray.direction * t;
                 }
@@ -174,6 +184,13 @@ where
             for y in -distance..=distance {
                 for z in -distance..=distance {
                     let queue_pos = chunk_at_camera + IVec3::new(x, y, z);
+                    let chunk_min_y = queue_pos.y * CHUNK_SIZE_I;
+                    let chunk_max_y = chunk_min_y + CHUNK_SIZE_I;
+
+                    if chunk_max_y <= min_y || chunk_min_y >= max_y {
+                        continue;
+                    }
+
                     chunks_deque.push_back(queue_pos);
                 }
             }
@@ -181,6 +198,13 @@ where
 
         // Then, when we have a queue of chunks, we can set them up for spawning
         while let Some(chunk_position) = chunks_deque.pop_front() {
+            let chunk_min_y = chunk_position.y * CHUNK_SIZE_I;
+            let chunk_max_y = chunk_min_y + CHUNK_SIZE_I;
+
+            if chunk_max_y <= min_y || chunk_min_y >= max_y {
+                continue;
+            }
+
             if visited.contains(&chunk_position)
                 || chunks_deque.len() > configuration.max_spawn_per_frame()
             {
@@ -229,6 +253,14 @@ where
                         if queue_pos == chunk_position {
                             continue;
                         }
+    
+                        let chunk_min_y = queue_pos.y * CHUNK_SIZE_I;
+                        let chunk_max_y = chunk_min_y + CHUNK_SIZE_I;
+
+                        if chunk_max_y <= min_y || chunk_min_y >= max_y {
+                            continue;
+                        }
+
                         chunks_deque.push_back(queue_pos);
                     }
                 }
@@ -474,13 +506,21 @@ where
         mut ev_chunk_will_update: MessageWriter<ChunkWillUpdate<C>>,
         chunk_map: Res<ChunkMap<C, C::MaterialIndex>>,
         modified_voxels: ResMut<ModifiedVoxels<C, C::MaterialIndex>>,
+        configuration: Res<C>,
     ) {
         let chunk_map_read_lock = chunk_map.get_read_lock();
         let mut modified_voxels = modified_voxels.write().unwrap();
 
+        let min_y = configuration.min_world_y();
+        let max_y = configuration.max_world_y();
+
         let mut updated_chunks = HashSet::<(Entity, IVec3)>::new();
 
         for (position, voxel) in buffer.iter() {
+             if position.y < min_y || position.y >= max_y {
+                continue;
+            }
+
             let (chunk_pos, _vox_pos) = get_chunk_voxel_position(*position);
             modified_voxels.insert(*position, *voxel);
 
