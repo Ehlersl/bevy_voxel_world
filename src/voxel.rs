@@ -1,4 +1,3 @@
-use bevy::math::Vec3;
 use block_mesh::{MergeVoxel, Voxel, VoxelVisibility};
 
 pub const VOXEL_SIZE: f32 = 1.;
@@ -48,27 +47,32 @@ impl<I: PartialEq + Eq + Default + Copy> MergeVoxel for WorldVoxel<I> {
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum VoxelFace {
-    None,
-    Bottom,
     Top,
-    Left,
-    Right,
-    Back,
-    Forward,
+    Bottom,
+    North,
+    South,
+    East,
+    West,
 }
 
-impl TryFrom<VoxelFace> for Vec3 {
-    type Error = ();
+impl VoxelFace {
+    pub fn is_top(self) -> bool {
+        matches!(self, VoxelFace::Top)
+    }
 
-    fn try_from(value: VoxelFace) -> Result<Self, Self::Error> {
-        match value {
-            VoxelFace::None => Err(()),
-            VoxelFace::Bottom => Ok(-Vec3::Y),
-            VoxelFace::Top => Ok(Vec3::Y),
-            VoxelFace::Left => Ok(-Vec3::X),
-            VoxelFace::Right => Ok(Vec3::X),
-            VoxelFace::Back => Ok(-Vec3::Z),
-            VoxelFace::Forward => Ok(Vec3::Z),
+    pub fn is_bottom(self) -> bool {
+        matches!(self, VoxelFace::Bottom)
+    }
+
+    pub fn is_side(self) -> bool {
+        !matches!(self, VoxelFace::Top | VoxelFace::Bottom)
+    }
+
+    pub fn atlas_column(self) -> usize {
+        match self {
+            VoxelFace::Top => 0,
+            VoxelFace::Bottom => 1,
+            VoxelFace::North | VoxelFace::South | VoxelFace::East | VoxelFace::West => 2,
         }
     }
 }

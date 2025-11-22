@@ -90,7 +90,7 @@ pub fn voxel_cartesian_traversal<F: FnMut(IVec3) -> bool + Sized>(
 /// what fixed increments of time over the ray are necessary to iterate each voxel exactly once.
 /// This is an implementation of J. Amanatides, A. Woo, "A Fast Voxel Traversal Algorithm for Ray
 /// Tracing", accessible online at http://www.cse.yorku.ca/~amana/research/grid.pdf
-pub fn voxel_line_traversal<F: FnMut(IVec3, f32, VoxelFace) -> bool + Sized>(
+pub fn voxel_line_traversal<F: FnMut(IVec3, f32, Option<VoxelFace>) -> bool + Sized>(
     start: Vec3,
     end: Vec3,
     mut visit_voxel: F,
@@ -135,16 +135,16 @@ pub fn voxel_line_traversal<F: FnMut(IVec3, f32, VoxelFace) -> bool + Sized>(
 
     let r_end_t = 1. / end_t;
     let mut time = max_t.min_element() * r_end_t;
-    let mut face = VoxelFace::None;
+    let mut face: Option<VoxelFace> = None;
 
     let out_of_bounds = end_voxel + step;
     let mut reached_end = voxel == end_voxel;
     let mut keep_going = visit_voxel(voxel, time, face);
 
     let x_face = if step.x > 0 {
-        VoxelFace::Left
+        VoxelFace::West
     } else {
-        VoxelFace::Right
+        VoxelFace::East
     };
     let y_face = if step.y > 0 {
         VoxelFace::Bottom
@@ -152,15 +152,15 @@ pub fn voxel_line_traversal<F: FnMut(IVec3, f32, VoxelFace) -> bool + Sized>(
         VoxelFace::Top
     };
     let z_face = if step.z > 0 {
-        VoxelFace::Back
+        VoxelFace::North
     } else {
-        VoxelFace::Forward
+        VoxelFace::South
     };
 
     while keep_going && !reached_end {
         if max_t.x < max_t.y && max_t.x < max_t.z {
             time = max_t.x * r_end_t;
-            face = x_face;
+            face = Some(x_face);
 
             voxel.x += step.x;
             max_t.x += delta_t.x;
@@ -168,7 +168,7 @@ pub fn voxel_line_traversal<F: FnMut(IVec3, f32, VoxelFace) -> bool + Sized>(
             reached_end = voxel.x == out_of_bounds.x;
         } else if max_t.y < max_t.z {
             time = max_t.y * r_end_t;
-            face = y_face;
+            face = Some(y_face);
 
             voxel.y += step.y;
             max_t.y += delta_t.y;
@@ -176,7 +176,7 @@ pub fn voxel_line_traversal<F: FnMut(IVec3, f32, VoxelFace) -> bool + Sized>(
             reached_end = voxel.y == out_of_bounds.y;
         } else {
             time = max_t.z * r_end_t;
-            face = z_face;
+            face = Some(z_face);
 
             voxel.z += step.z;
             max_t.z += delta_t.z;
