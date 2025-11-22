@@ -8,6 +8,7 @@ use bevy::{
         AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, VertexFormat,
     },
 };
+use bevy::image::ImageSampler;
 use bevy_shader::{Shader, ShaderDefVal, ShaderRef};
 
 /// Keeps track of the loading status of the image used for the voxel texture
@@ -93,4 +94,6 @@ pub(crate) fn prepare_texture(
 
     let image = images.get_mut(&loading_texture.handle).unwrap();
     image.reinterpret_stacked_2d_as_array(texture_layers.0);
+
+    image.sampler = ImageSampler::nearest();
 }
