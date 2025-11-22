@@ -71,11 +71,11 @@ pub fn voxel_cartesian_traversal<F: FnMut(IVec3) -> bool + Sized>(
 ///
 ///         // If this is not the very first voxel visited (ie, the one including `start`), draw
 ///         // a debug circle on the face through which the trace entered the current voxel
-///         if let Ok(entered_face_normal) = face.try_into() {
-///             gizmos.circle(
-///                 Isometry3d::new(voxel_center + (entered_face_normal * VOXEL_SIZE / 2.), Quat::from_rotation_arc(Vec3::Z, entered_face_normal)),
-///                 0.8 * VOXEL_SIZE / 2.,
-///                 css::RED.with_alpha(0.5));
+///         let entered_face_normal: Vec3 = face.into();
+///         gizmos.circle(
+///             Isometry3d::new(voxel_center + (entered_face_normal * VOXEL_SIZE / 2.), Quat::from_rotation_arc(Vec3::Z, entered_face_normal)),
+///             0.8 * VOXEL_SIZE / 2.,
+///             css::RED.with_alpha(0.5));
 ///         }
 ///
 ///         // Keep drawing until trace has finished visiting all voxels along the way

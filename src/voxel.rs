@@ -1,3 +1,5 @@
+use bevy::math::Vec3;
+
 use block_mesh::{MergeVoxel, Voxel, VoxelVisibility};
 
 pub const VOXEL_SIZE: f32 = 1.;
@@ -73,6 +75,21 @@ impl VoxelFace {
             VoxelFace::Top => 0,
             VoxelFace::Bottom => 1,
             VoxelFace::North | VoxelFace::South | VoxelFace::East | VoxelFace::West => 2,
+        }
+    }
+}
+
+impl From<VoxelFace> for Vec3 {
+    fn from(face: VoxelFace) -> Self {
+        match face {
+            VoxelFace::Top    =>  Vec3::Y,
+            VoxelFace::Bottom => -Vec3::Y,
+
+            VoxelFace::North  => -Vec3::Z,
+            VoxelFace::South  =>  Vec3::Z,
+
+            VoxelFace::East   =>  Vec3::X,
+            VoxelFace::West   => -Vec3::X,
         }
     }
 }

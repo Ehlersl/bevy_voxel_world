@@ -375,7 +375,7 @@ impl<C: VoxelWorldConfig> VoxelWorld<'_, C> {
                     if voxel.is_solid() {
                         raycast_result = Some(VoxelRaycastResult {
                             position: voxel_coords.as_vec3(),
-                            normal: face.try_into().ok(),
+                            normal: face.map(|f| f.into()),
                             voxel,
                         });
 

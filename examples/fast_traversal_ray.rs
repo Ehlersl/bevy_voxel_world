@@ -174,25 +174,25 @@ fn draw_trace(trace: Res<VoxelTrace>, mut gizmos: Gizmos) {
                 css::PINK,
             );
 
-            if let Ok(normal) = face.try_into() {
-                gizmos.circle(
-                    Isometry3d::new(
-                        voxel_center + (normal * VOXEL_SIZE / 2.),
-                        Quat::from_rotation_arc(Vec3::Z, normal),
-                    ),
-                    0.8 * VOXEL_SIZE / 2.,
-                    css::RED.with_alpha(0.5),
-                );
+            let normal = face.into();
 
-                gizmos.sphere(
-                    Isometry3d::new(
-                        trace_start + (trace.end - trace_start) * time,
-                        Quat::IDENTITY,
-                    ),
-                    0.1,
-                    Color::BLACK,
-                );
-            }
+            gizmos.circle(
+                Isometry3d::new(
+                    voxel_center + (normal * VOXEL_SIZE / 2.),
+                    Quat::from_rotation_arc(Vec3::Z, normal),
+                ),
+                0.8 * VOXEL_SIZE / 2.,
+                css::RED.with_alpha(0.5),
+            );
+
+            gizmos.sphere(
+                Isometry3d::new(
+                    trace_start + (trace.end - trace_start) * time,
+                    Quat::IDENTITY,
+                ),
+                0.1,
+                Color::BLACK,
+            );
 
             // Keep drawing until trace has finished visiting all voxels along the way
             const NEVER_STOP: bool = true;
