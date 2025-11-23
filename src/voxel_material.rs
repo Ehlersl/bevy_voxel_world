@@ -27,19 +27,16 @@ pub const VOXEL_TEXTURE_SHADER_HANDLE: Handle<Shader> =
 pub const ATTRIBUTE_TEX_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("TextureIndex", 989640910, VertexFormat::Uint32x3);
 
-pub fn vertex_layout() -> Vec<VertexAttributeDescriptor> {
-    vec![
+pub fn vertex_layout() -> [VertexAttributeDescriptor; 5] {
+    [
         Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
         Mesh::ATTRIBUTE_NORMAL.at_shader_location(1),
         Mesh::ATTRIBUTE_UV_0.at_shader_location(2),
-        //Mesh::ATTRIBUTE_TANGENT.at_shader_location(4),
         Mesh::ATTRIBUTE_COLOR.at_shader_location(5),
-        //Mesh::ATTRIBUTE_COLOR.at_shader_location(7),
-        //Mesh::ATTRIBUTE_JOINT_INDEX.at_shader_location(6),
-        //Mesh::ATTRIBUTE_JOINT_WEIGHT.at_shader_location(7),
         ATTRIBUTE_TEX_INDEX.at_shader_location(8),
     ]
 }
+
 #[derive(Asset, AsBindGroup, Debug, Clone, Default, TypePath)]
 pub(crate) struct StandardVoxelMaterial {
     #[texture(100, dimension = "2d_array")]

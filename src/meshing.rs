@@ -22,7 +22,7 @@ use crate::{
 
 pub type VoxelArray<I> = Arc<[WorldVoxel<I>; PaddedChunkShape::SIZE as usize]>;
 
-/// Generate a mesh for the given chunks, or None of the chunk is empty
+/// Generate a mesh for the given chunks
 pub fn generate_chunk_mesh<I: PartialEq + Copy>(
     voxels: VoxelArray<I>,
     _pos: IVec3,
@@ -40,15 +40,15 @@ pub fn generate_chunk_mesh<I: PartialEq + Copy>(
         &mut buffer,
     );
 
-    mesh_from_quads(buffer, faces, voxels, texture_index_mapper)
+    mesh_from_quads(buffer, &faces, &voxels, texture_index_mapper)
 }
 
 /// Create a Bevy Mesh from a block_mesh::UnitQuadBuffer
 pub fn mesh_from_quads<I: PartialEq + Copy>(
     quads: UnitQuadBuffer,
-    faces: [OrientedBlockFace; 6],
-    voxels: VoxelArray<I>,
-    texture_index_mapper: Arc<dyn Fn(I) -> [u32; 3] + Send + Sync>,
+    faces: &[OrientedBlockFace; 6],
+    voxels: &VoxelArray<I>,
+    texture_index_mapper: TextureIndexMapperFn<I>,
 ) -> Mesh {
     let num_indices = quads.num_quads() * 6;
     let num_vertices = quads.num_quads() * 4;
@@ -61,23 +61,18 @@ pub fn mesh_from_quads<I: PartialEq + Copy>(
     let mut aos = Vec::with_capacity(num_vertices);
 
     for (group, face) in quads.groups.into_iter().zip(faces.into_iter()) {
+        let signed_normal = face.signed_normal();
+        let normal = IVec3::new(signed_normal.x, signed_normal.y, signed_normal.z);
+
+        let face_normals = face.quad_mesh_normals();
+
         for quad in group.into_iter() {
-            let normal = IVec3::from([
-                face.signed_normal().x,
-                face.signed_normal().y,
-                face.signed_normal().z,
-            ]);
-
             let ao = face_aos(&quad.minimum, &normal, &voxels);
+
             aos.extend_from_slice(&ao);
-
-            // TODO: Fix AO anisotropy
             indices.extend_from_slice(&face.quad_mesh_indices(positions.len() as u32));
-
             positions.extend_from_slice(&face.quad_mesh_positions(&quad.into(), 1.0));
-
-            normals.extend_from_slice(&face.quad_mesh_normals());
-
+            normals.extend_from_slice(&face_normals);
             tex_coords.extend_from_slice(&face.tex_coords(
                 RIGHT_HANDED_Y_UP_CONFIG.u_flip_face,
                 true,
@@ -89,9 +84,11 @@ pub fn mesh_from_quads<I: PartialEq + Copy>(
                 WorldVoxel::Solid(mt) => texture_index_mapper(mt),
                 _ => [0, 0, 0],
             };
-            material_types.extend(std::iter::repeat_n(material_type, 4));
+            material_types.extend_from_slice(&[material_type; 4]);
         }
     }
+
+    let colors: Vec<[f32; 4]> = aos.iter().map(|&lvl| ao_to_color(lvl)).collect();
 
     let mut render_mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
@@ -100,7 +97,7 @@ pub fn mesh_from_quads<I: PartialEq + Copy>(
 
     render_mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
-        VertexAttributeValues::Float32x3(positions.clone()),
+        VertexAttributeValues::Float32x3(positions),
     );
     render_mesh.insert_attribute(
         Mesh::ATTRIBUTE_NORMAL,
@@ -115,25 +112,24 @@ pub fn mesh_from_quads<I: PartialEq + Copy>(
         VertexAttributeValues::Uint32x3(material_types),
     );
 
-    // Apply ambient occlusion values
-    {
-        let colors: Vec<[f32; 4]> = positions
-            .iter()
-            .enumerate()
-            .map(|(i, _)| match aos[i] {
-                0 => [0.1, 0.1, 0.1, 1.0],
-                1 => [0.3, 0.3, 0.3, 1.0],
-                2 => [0.5, 0.5, 0.5, 1.0],
-                3 => [1.0, 1.0, 1.0, 1.0],
-                _ => [1.0, 1.0, 1.0, 1.0],
-            })
-            .collect();
-        render_mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-    }
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_COLOR,
+        VertexAttributeValues::Float32x4(colors),
+    );
 
-    render_mesh.insert_indices(Indices::U32(indices.clone()));
+    render_mesh.insert_indices(Indices::U32(indices));
 
     render_mesh
+}
+
+fn ao_to_color(level: u32) -> [f32; 4] {
+    match level {
+        0 => [0.1, 0.1, 0.1, 1.0],
+        1 => [0.3, 0.3, 0.3, 1.0],
+        2 => [0.5, 0.5, 0.5, 1.0],
+        3 => [1.0, 1.0, 1.0, 1.0],
+        _ => [1.0, 1.0, 1.0, 1.0],
+    }
 }
 
 fn ao_value(side1: bool, corner: bool, side2: bool) -> u32 {
@@ -146,16 +142,7 @@ fn ao_value(side1: bool, corner: bool, side2: bool) -> u32 {
 }
 
 fn side_aos<I: PartialEq>(neighbours: [WorldVoxel<I>; 8]) -> [u32; 4] {
-    let ns = [
-        neighbours[0].get_visibility() == VoxelVisibility::Opaque,
-        neighbours[1].get_visibility() == VoxelVisibility::Opaque,
-        neighbours[2].get_visibility() == VoxelVisibility::Opaque,
-        neighbours[3].get_visibility() == VoxelVisibility::Opaque,
-        neighbours[4].get_visibility() == VoxelVisibility::Opaque,
-        neighbours[5].get_visibility() == VoxelVisibility::Opaque,
-        neighbours[6].get_visibility() == VoxelVisibility::Opaque,
-        neighbours[7].get_visibility() == VoxelVisibility::Opaque,
-    ];
+    let ns = neighbours.map(|n| n.get_visibility() == VoxelVisibility::Opaque);
 
     [
         ao_value(ns[0], ns[1], ns[2]),
