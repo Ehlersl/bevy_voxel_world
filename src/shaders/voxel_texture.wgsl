@@ -23,49 +23,31 @@ var mat_array_texture: texture_2d_array<f32>;
 @group(#{MATERIAL_BIND_GROUP}) @binding(101)
 var mat_array_texture_sampler: sampler;
 
-struct Vertex {
+struct VertexInput {
     @builtin(instance_index) instance_index: u32,
-#ifdef VERTEX_POSITIONS
+
     @location(0) position: vec3<f32>,
-#endif
-#ifdef VERTEX_NORMALS
     @location(1) normal: vec3<f32>,
-#endif
-#ifdef VERTEX_UVS
     @location(2) uv: vec2<f32>,
-#endif
-#ifdef VERTEX_TANGENTS
-    @location(4) tangent: vec4<f32>,
-#endif
-#ifdef VERTEX_COLORS
     @location(5) color: vec4<f32>,
-#endif
 
     @location(8) tex_idx: vec3<u32>,
 };
 
 struct CustomVertexOutput {
     @builtin(position) position: vec4<f32>,
+
     @location(0) world_position: vec4<f32>,
     @location(1) world_normal: vec3<f32>,
-#ifdef VERTEX_UVS
     @location(2) uv: vec2<f32>,
-#endif
-#ifdef VERTEX_TANGENTS
-    @location(4) world_tangent: vec4<f32>,
-#endif
-#ifdef VERTEX_COLORS
     @location(5) color: vec4<f32>,
-#endif
-#ifdef VERTEX_OUTPUT_INSTANCE_INDEX
     @location(6) @interpolate(flat) instance_index: u32,
-#endif
 
     @location(8) tex_idx: vec3<u32>,
 };
 
 @vertex
-fn vertex(vertex: Vertex) -> CustomVertexOutput {
+fn vertex(vertex: VertexInput) -> CustomVertexOutput {
     var out: CustomVertexOutput;
     var model = mesh_functions::get_world_from_local(vertex.instance_index);
 
@@ -81,23 +63,10 @@ fn vertex(vertex: Vertex) -> CustomVertexOutput {
 
     out.position = position_world_to_clip(out.world_position.xyz);
 
-#ifdef VERTEX_UVS
     out.uv = vertex.uv;
-#endif
-#ifdef VERTEX_TANGENTS
-    out.world_tangent = mesh_functions::mesh_tangent_local_to_world(
-        model,
-        vertex.tangent,
-        vertex.instance_index,
-    );
-#endif
-#ifdef VERTEX_COLORS
-    out.color = vertex.color;
-#endif
-#ifdef VERTEX_OUTPUT_INSTANCE_INDEX
-    out.instance_index = vertex.instance_index;
-#endif
 
+    out.color = vertex.color;
+    out.instance_index = vertex.instance_index;
     out.tex_idx = vertex.tex_idx;
 
     return out;
