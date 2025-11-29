@@ -8,7 +8,7 @@ use bevy::{
 use crate::{
     configuration::{DefaultWorld, VoxelWorldConfig},
     voxel_material::{
-        prepare_texture, LoadingTexture, StandardVoxelMaterial, TextureLayers,
+        prepare_texture, LoadingTexture, StandardVoxelMaterial,
         VOXEL_TEXTURE_SHADER_HANDLE,
     },
     voxel_world::*,
@@ -154,19 +154,17 @@ where
             }
 
             let mut preloaded_texture = true;
-            let mut texture_layers = 0;
 
             // Use built-in default texture if no texture is specified.
-            let image_handle = match self.config.voxel_texture() {
-                Some((img_path, layers)) => {
-                    texture_layers = layers;
+            let (image_handle, rows) = match self.config.voxel_texture() {
+                Some((img_path, rows)) => {
                     preloaded_texture = false;
                     let asset_server = app.world().get_resource::<AssetServer>().unwrap();
-                    asset_server.load(img_path)
+                    (asset_server.load(img_path), rows)
                 }
                 None => {
-                    let mut image = Image::from_buffer(
-                        include_bytes!("shaders/default_texture.png"),
+                    let image = Image::from_buffer(
+                        include_bytes!("shaders/default_atlas.png"),
                         ImageType::MimeType("image/png"),
                         CompressedImageFormats::default(),
                         false,
@@ -174,10 +172,9 @@ where
                         RenderAssetUsages::default(),
                     )
                     .unwrap();
-                    image.reinterpret_stacked_2d_as_array(4);
-                    let mut image_assets =
-                        app.world_mut().resource_mut::<Assets<Image>>();
-                    image_assets.add(image)
+
+                    let mut images = app.world_mut().resource_mut::<Assets<Image>>();
+                    (images.add(image), 4)
                 }
             };
 
@@ -195,6 +192,8 @@ where
                 },
                 extension: StandardVoxelMaterial {
                     voxels_texture: image_handle.clone(),
+                    atlas_inv_cols: 1.0 / 3.0,
+                    atlas_inv_rows: 1.0 / rows as f32,
                 },
             });
 
@@ -203,7 +202,6 @@ where
                 handle: image_handle,
             });
             app.insert_resource(VoxelWorldMaterialHandle { handle: mat_handle });
-            app.insert_resource(TextureLayers(texture_layers));
 
             app.add_systems(Update, prepare_texture);
 

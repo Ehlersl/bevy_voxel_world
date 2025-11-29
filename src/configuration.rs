@@ -10,7 +10,7 @@ pub type VoxelLookupFn<I = u8> = Box<dyn FnMut(IVec3) -> WorldVoxel<I> + Send + 
 pub type VoxelLookupDelegate<I = u8> =
     Box<dyn Fn(IVec3) -> VoxelLookupFn<I> + Send + Sync>;
 
-pub type TextureIndexMapperFn<I = u8> = Arc<dyn Fn(I) -> [u32; 3] + Send + Sync>;
+pub type TextureIndexMapperFn<I = u8> = Arc<dyn Fn(I) -> u32 + Send + Sync>;
 
 pub type ChunkMeshingFn<I, UB> = Box<
     dyn FnMut(Arc<VoxelArray<I>>, TextureIndexMapperFn<I>) -> (Mesh, Option<UB>)
@@ -113,13 +113,11 @@ pub trait VoxelWorldConfig: Resource + Default + Clone {
         false
     }
 
-    /// A function that maps voxel materials to texture coordinates.
-    /// The input is the material index, and the output is a slice of three indexes into an array texture.
-    /// The three values correspond to the top, sides and bottom of the voxel. For example,
-    /// if the slice is `[1,2,2]`, the top will use texture index 1 and the sides and bottom will use texture
-    /// index 2.
+    /// A function that maps voxel materials to a row in the atlas texture.
+    /// The input is the material index, and the output is the row index where that block's faces
+    /// are stored. Atlas columns are ordered left-to-right as Top, Bottom, Side.
     fn texture_index_mapper(&self) -> TextureIndexMapperFn<Self::MaterialIndex> {
-        Arc::new(|_mat| [0, 0, 0])
+        Arc::new(|_mat| 0)
     }
 
     /// A function that returns a function that returns true if a voxel exists at the given position
@@ -145,7 +143,7 @@ pub trait VoxelWorldConfig: Resource + Default + Clone {
         None
     }
 
-    /// A tuple of the path to the texture and the number of indexes in the texture. `None` if no texture is used.
+    /// Path to the atlas texture. `None` if no texture is used.
     fn voxel_texture(&self) -> Option<(String, u32)> {
         None
     }
@@ -185,13 +183,13 @@ impl VoxelWorldConfig for DefaultWorld {
 
     fn texture_index_mapper(
         &self,
-    ) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
+    ) -> Arc<dyn Fn(Self::MaterialIndex) -> u32 + Send + Sync> {
         Arc::new(|mat| match mat {
-            0 => [0, 0, 0],
-            1 => [1, 1, 1],
-            2 => [2, 2, 2],
-            3 => [3, 3, 3],
-            _ => [0, 0, 0],
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            3 => 3,
+            _ => 0,
         })
     }
 }

@@ -69,9 +69,9 @@ Voxels are keyed by their XYZ coordinate in the world, specified by an `IVec3`. 
 
 ## Voxel materials
 
-`Solid` voxels holds a material type value. You can configure the type of the material index, but it's advisable to keep it small (like `u8`), since each voxel will hold one of these values. Material types can easily be mapped to indexes in a 2d texture array though a mapping callback. The mapping callback always returns a `[u32; 3]` which is passed along to the shader.
+`Solid` voxels holds a material type value. You can configure the type of the material index, but it's advisable to keep it small (like `u8`), since each voxel will hold one of these values. Material types can easily be mapped to atlas rows through a mapping callback. The callback returns a `u32` row index that gets passed to the shader.
 
-A custom array texture can be supplied in the config. It should be image with a size of `W x (W * n)`, where `n` is the number of indexes. So an array of 4 16x16 px textures would be 16x64 px in size. The number of indexes is specified in the second parameter.
+You can supply a custom atlas texture in the config. Each block occupies one row and uses three columns ordered `Top, Bottom, Side`. If you provide an older stacked texture with dimensions `W x (W * n)`, it will be expanded automatically by repeating the tile across the three face columns.
 
 Then, to map out which indexes belong to which material type, you can supply a `texture_index_mapper` callback:
 
@@ -81,21 +81,21 @@ impl VoxelWorldConfig for MyWorld {
     type MaterialIndex = u8;
     type ChunkUserBundle = ();
 
-    fn texture_index_mapper(&self) -> Arc<dyn Fn(u8) -> [u32; 3] + Send + Sync> {
+    fn texture_index_mapper(&self) -> Arc<dyn Fn(u8) -> u32 + Send + Sync> {
         Arc::new(|vox_mat: u8| match vox_mat {
-            SNOWY_BRICK => [0, 1, 2],
-            FULL_BRICK => [2, 2, 2],
-            GRASS | _ => [3, 3, 3],
+            DIRT => 0,
+            GRASS => 1,
+            SAND => 2,
         })
     }
 
     fn voxel_texture(&self) -> Option<(String, u32)> {
-        Some(("example_voxel_texture.png".into(), 4)) // Array texture with 4 indexes
+        Some(("example_voxel_atlas.png".into(), 4))
     }
 }
 ```
 
-The `texture_index_mapper` callback is supplied with a material type and should return an array with three values. The values indicate which texture index maps to `[top, sides, bottom]` of a voxel.
+The `texture_index_mapper` callback is supplied with a material type and should return the atlas row used for that block. The atlas arranges faces horizontally, with columns ordered `[top, bottom, side]`.
 
 See the [textures example](https://github.com/splashdust/bevy_voxel_world/blob/main/examples/textures.rs) for a runnable example of this.
 

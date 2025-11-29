@@ -57,7 +57,7 @@ pub fn mesh_from_quads<I: PartialEq + Copy>(
     let mut positions = Vec::with_capacity(num_vertices);
     let mut normals = Vec::with_capacity(num_vertices);
     let mut tex_coords = Vec::with_capacity(num_vertices);
-    let mut material_types = Vec::with_capacity(num_vertices);
+    let mut material_rows = Vec::with_capacity(num_vertices);
     let mut aos = Vec::with_capacity(num_vertices);
 
     for (group, face) in quads.groups.into_iter().zip(faces.into_iter()) {
@@ -80,11 +80,11 @@ pub fn mesh_from_quads<I: PartialEq + Copy>(
             ));
 
             let voxel_index = PaddedChunkShape::linearize(quad.minimum) as usize;
-            let material_type = match voxels[voxel_index] {
+            let material_row = match voxels[voxel_index] {
                 WorldVoxel::Solid(mt) => texture_index_mapper(mt),
-                _ => [0, 0, 0],
+                _ => 0,
             };
-            material_types.extend_from_slice(&[material_type; 4]);
+            material_rows.extend_from_slice(&[material_row; 4]);
         }
     }
 
@@ -109,7 +109,7 @@ pub fn mesh_from_quads<I: PartialEq + Copy>(
     );
     render_mesh.insert_attribute(
         ATTRIBUTE_TEX_INDEX,
-        VertexAttributeValues::Uint32x3(material_types),
+        VertexAttributeValues::Uint32(material_rows),
     );
 
     render_mesh.insert_attribute(

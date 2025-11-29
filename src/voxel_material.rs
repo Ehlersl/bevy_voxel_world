@@ -1,3 +1,4 @@
+use bevy::image::ImageSampler;
 use bevy::{
     asset::uuid_handle,
     mesh::{MeshVertexAttribute, MeshVertexBufferLayoutRef, VertexAttributeDescriptor},
@@ -8,7 +9,6 @@ use bevy::{
         AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError, VertexFormat,
     },
 };
-use bevy::image::ImageSampler;
 use bevy_shader::{Shader, ShaderDefVal, ShaderRef};
 
 /// Keeps track of the loading status of the image used for the voxel texture
@@ -18,14 +18,11 @@ pub(crate) struct LoadingTexture {
     pub handle: Handle<Image>,
 }
 
-#[derive(Resource)]
-pub(crate) struct TextureLayers(pub u32);
-
 pub const VOXEL_TEXTURE_SHADER_HANDLE: Handle<Shader> =
     uuid_handle!("df1398dc-56ad-4cd7-9bc2-7678cab2f144");
 
 pub const ATTRIBUTE_TEX_INDEX: MeshVertexAttribute =
-    MeshVertexAttribute::new("TextureIndex", 989640910, VertexFormat::Uint32x3);
+    MeshVertexAttribute::new("TextureIndex", 989640910, VertexFormat::Uint32);
 
 pub fn vertex_layout() -> [VertexAttributeDescriptor; 5] {
     [
@@ -39,9 +36,14 @@ pub fn vertex_layout() -> [VertexAttributeDescriptor; 5] {
 
 #[derive(Asset, AsBindGroup, Debug, Clone, Default, TypePath)]
 pub(crate) struct StandardVoxelMaterial {
-    #[texture(100, dimension = "2d_array")]
+    #[texture(100, dimension = "2d")]
     #[sampler(101)]
     pub voxels_texture: Handle<Image>,
+
+    #[uniform(102)]
+    pub atlas_inv_cols: f32,  // 1.0 / 3.0
+    #[uniform(103)]
+    pub atlas_inv_rows: f32,  // 1.0 / rows
 }
 
 impl MaterialExtension for StandardVoxelMaterial {
@@ -75,7 +77,6 @@ impl MaterialExtension for StandardVoxelMaterial {
 
 pub(crate) fn prepare_texture(
     asset_server: Res<AssetServer>,
-    texture_layers: Res<TextureLayers>,
     mut loading_texture: ResMut<LoadingTexture>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -90,7 +91,6 @@ pub(crate) fn prepare_texture(
     loading_texture.is_loaded = true;
 
     let image = images.get_mut(&loading_texture.handle).unwrap();
-    image.reinterpret_stacked_2d_as_array(texture_layers.0);
 
     image.sampler = ImageSampler::nearest();
 }

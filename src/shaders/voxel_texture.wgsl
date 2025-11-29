@@ -18,10 +18,16 @@
 #endif
 
 @group(#{MATERIAL_BIND_GROUP}) @binding(100)
-var mat_array_texture: texture_2d_array<f32>;
+var atlas_texture: texture_2d<f32>;
 
 @group(#{MATERIAL_BIND_GROUP}) @binding(101)
-var mat_array_texture_sampler: sampler;
+var atlas_texture_sampler: sampler;
+
+@group(#{MATERIAL_BIND_GROUP}) @binding(102)
+var<uniform> atlas_inv_cols: f32;
+
+@group(#{MATERIAL_BIND_GROUP}) @binding(103)
+var<uniform> atlas_inv_rows: f32;
 
 struct VertexInput {
     @builtin(instance_index) instance_index: u32,
@@ -31,7 +37,7 @@ struct VertexInput {
     @location(2) uv: vec2<f32>,
     @location(5) color: vec4<f32>,
 
-    @location(8) tex_idx: vec3<u32>,
+    @location(8) tex_row: u32,
 };
 
 struct CustomVertexOutput {
@@ -43,7 +49,7 @@ struct CustomVertexOutput {
     @location(5) color: vec4<f32>,
     @location(6) @interpolate(flat) instance_index: u32,
 
-    @location(8) tex_idx: vec3<u32>,
+    @location(8) @interpolate(flat) tex_row: u32,
 };
 
 @vertex
@@ -67,7 +73,7 @@ fn vertex(vertex: VertexInput) -> CustomVertexOutput {
 
     out.color = vertex.color;
     out.instance_index = vertex.instance_index;
-    out.tex_idx = vertex.tex_idx;
+    out.tex_row = vertex.tex_row;
 
     return out;
 }
@@ -86,21 +92,27 @@ fn fragment(
     standard_in.instance_index = in.instance_index;
     var pbr_input = pbr_input_from_standard_material(standard_in, is_front);
 
+    // determine texture column based on normal
+    // 0 = Top, 1 = Bottom, 2 = Side
     var tex_face: u32 = 0u;
-
-    // determine texture index based on normal
-    if in.world_normal.y == 0.0 {
+    if in.world_normal.y < 0.0 {
         tex_face = 1u;
-    } else if in.world_normal.y < 0.0 {
+    } else if in.world_normal.y == 0.0 {
         tex_face = 2u;
     }
 
-    let layer: i32 = i32(in.tex_idx[tex_face]);
+    let tile_size = vec2<f32>(atlas_inv_cols, atlas_inv_rows);
+    let uv_offset = vec2<f32>(
+        f32(tex_face) * tile_size.x,
+        f32(in.tex_row) * tile_size.y,
+    );
+
+    let atlas_uv = in.uv * tile_size + uv_offset;
+
     pbr_input.material.base_color = textureSample(
-        mat_array_texture,
-        mat_array_texture_sampler,
-        in.uv,
-        layer,
+        atlas_texture,
+        atlas_texture_sampler,
+        atlas_uv,
     );
     pbr_input.material.base_color = pbr_input.material.base_color * in.color;
     pbr_input.material.base_color = alpha_discard(
