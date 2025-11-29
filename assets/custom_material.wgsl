@@ -3,20 +3,20 @@
 @fragment
 fn fragment(
     in: VertexOutput,
-    @location(8) tex_idx: vec3<u32>,
+    @location(8) tex_row: u32,
 ) -> FragmentOutput {
     var out: FragmentOutput;
 
-    // tex_idx will be the array produced by the texture_index_mapper
+    // tex_row will be the array produced by the texture_index_mapper
     // You can use it to send three unsigned integers to the shader
     // based on the voxel type.
-    if (tex_idx[0] == 1u) {
+    if (tex_row == 1u) {
         out.color = vec4<f32>(1.0, 0.1, 0.1, 1.0);
     }
-    if (tex_idx[0] == 2u) {
+    if (tex_row == 2u) {
         out.color = vec4<f32>(0.1, 1.0, 0.1, 1.0);
     }
-    if (tex_idx[0] == 3u) {
+    if (tex_row == 3u) {
         out.color = vec4<f32>(0.1, 0.1, 1.0, 1.0);
     }
 

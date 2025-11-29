@@ -6,9 +6,10 @@ use std::sync::Arc;
 use bevy_voxel_world::{prelude::*, traversal_alg::*};
 
 // Declare materials as consts for convenience
-const SNOWY_BRICK: u8 = 0;
-const FULL_BRICK: u8 = 1;
-const GRASS: u8 = 2;
+const DIRT: u8 = 0;
+const GRASS: u8 = 1;
+const SAND: u8 = 2;
+const STONE: u8 = 3;
 
 #[derive(Resource, Clone, Default)]
 struct MyMainWorld;
@@ -23,16 +24,18 @@ impl VoxelWorldConfig for MyMainWorld {
     type MaterialIndex = u8;
     type ChunkUserBundle = ();
 
-    fn texture_index_mapper(&self) -> Arc<dyn Fn(u8) -> [u32; 3] + Send + Sync> {
+    fn texture_index_mapper(&self) -> Arc<dyn Fn(u8) -> u32 + Send + Sync> {
         Arc::new(|vox_mat: u8| match vox_mat {
-            SNOWY_BRICK => [0, 1, 2],
-            FULL_BRICK => [2, 2, 2],
-            _ => [3, 3, 3],
+            DIRT => 0,
+            GRASS => 1,
+            SAND => 2,
+            STONE => 3,
+            _ => 0,
         })
     }
 
     fn voxel_texture(&self) -> Option<(String, u32)> {
-        Some(("example_voxel_texture.png".into(), 4))
+        Some(("example_voxel_atlas.png".into(), 4))
     }
 }
 
@@ -78,7 +81,7 @@ fn setup(
         MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 128))),
         CursorCube {
             voxel_pos: IVec3::new(0, -10, 0),
-            voxel_mat: FULL_BRICK,
+            voxel_mat: STONE,
         },
     ));
 
@@ -119,15 +122,15 @@ fn create_voxel_scene(mut voxel_world: VoxelWorld<MyMainWorld>) {
     }
 
     // Some bricks
-    voxel_world.set_voxel(IVec3::new(0, 0, 0), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(1, 0, 0), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(0, 0, 1), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(0, 0, -1), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(-1, 0, 0), WorldVoxel::Solid(FULL_BRICK));
-    voxel_world.set_voxel(IVec3::new(-2, 0, 0), WorldVoxel::Solid(FULL_BRICK));
-    voxel_world.set_voxel(IVec3::new(-1, 1, 0), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(-2, 1, 0), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(0, 1, 0), WorldVoxel::Solid(SNOWY_BRICK));
+    voxel_world.set_voxel(IVec3::new(0, 0, 0), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(1, 0, 0), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(0, 0, 1), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(0, 0, -1), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(-1, 0, 0), WorldVoxel::Solid(STONE));
+    voxel_world.set_voxel(IVec3::new(-2, 0, 0), WorldVoxel::Solid(STONE));
+    voxel_world.set_voxel(IVec3::new(-1, 1, 0), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(-2, 1, 0), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(0, 1, 0), WorldVoxel::Solid(DIRT));
 }
 
 fn update_cursor_cube(
@@ -174,16 +177,18 @@ fn draw_trace(trace: Res<VoxelTrace>, mut gizmos: Gizmos) {
                 css::PINK,
             );
 
-            let normal = face.into();
+            if let Some(face) = face {
+                let normal: Vec3 = face.into();
 
-            gizmos.circle(
-                Isometry3d::new(
-                    voxel_center + (normal * VOXEL_SIZE / 2.),
-                    Quat::from_rotation_arc(Vec3::Z, normal),
-                ),
-                0.8 * VOXEL_SIZE / 2.,
-                css::RED.with_alpha(0.5),
-            );
+                gizmos.circle(
+                    Isometry3d::new(
+                        voxel_center + (normal * VOXEL_SIZE / 2.),
+                        Quat::from_rotation_arc(Vec3::Z, normal),
+                    ),
+                    0.8 * VOXEL_SIZE / 2.,
+                    css::RED.with_alpha(0.5),
+                );
+            }
 
             gizmos.sphere(
                 Isometry3d::new(

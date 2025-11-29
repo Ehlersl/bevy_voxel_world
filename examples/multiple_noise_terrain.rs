@@ -13,10 +13,10 @@ struct MainWorld;
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
 enum BlockTexture {
     #[default]
-    Grass,
-    Stone,
     Dirt,
-    Snow,
+    Grass,
+    Sand,
+    Stone,
 }
 
 impl VoxelWorldConfig for MainWorld {
@@ -37,12 +37,12 @@ impl VoxelWorldConfig for MainWorld {
 
     fn texture_index_mapper(
         &self,
-    ) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
+    ) -> Arc<dyn Fn(Self::MaterialIndex) -> u32 + Send + Sync> {
         Arc::new(|mat| match mat {
-            BlockTexture::Grass => [0, 0, 0],
-            BlockTexture::Stone => [1, 1, 1],
-            BlockTexture::Dirt => [2, 2, 2],
-            BlockTexture::Snow => [3, 3, 3],
+            BlockTexture::Dirt => 0,
+            BlockTexture::Grass => 1,
+            BlockTexture::Sand => 2,
+            BlockTexture::Stone => 3,
             // _ => [0, 0, 0],
         })
     }
@@ -113,7 +113,7 @@ fn get_voxel_fn() -> Box<dyn FnMut(IVec3) -> WorldVoxel<BlockTexture> + Send + S
     Box::new(move |pos: IVec3| {
         // Sea level
         if pos.y < 1 {
-            return WorldVoxel::Solid(BlockTexture::Snow);
+            return WorldVoxel::Solid(BlockTexture::Sand);
         }
 
         let [x, y, z] = pos.as_dvec3().to_array();
@@ -137,15 +137,15 @@ fn get_voxel_fn() -> Box<dyn FnMut(IVec3) -> WorldVoxel<BlockTexture> + Send + S
         const SNOW_LEVEL: f64 = 50.0;
         if is_vegetation {
             if y > SNOW_LEVEL {
-                WorldVoxel::Solid(BlockTexture::Snow)
-            } else {
                 WorldVoxel::Solid(BlockTexture::Stone)
+            } else {
+                WorldVoxel::Solid(BlockTexture::Grass)
             }
         } else if is_ground {
             if y > SNOW_LEVEL {
-                WorldVoxel::Solid(BlockTexture::Snow)
+                WorldVoxel::Solid(BlockTexture::Stone)
             } else {
-                WorldVoxel::Solid(BlockTexture::Grass)
+                WorldVoxel::Solid(BlockTexture::Dirt)
             }
         } else {
             WorldVoxel::Air

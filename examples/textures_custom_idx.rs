@@ -1,14 +1,15 @@
 use bevy::prelude::*;
 use bevy_voxel_world::prelude::*;
-use std::sync::Arc;
+use std::{mem::size_of, sync::Arc};
 
 // Using enum for material index allows for more than u8::MAX number of materials.
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
 enum BlockTexture {
     #[default]
-    SnowyBrick,
-    FullBrick,
+    Dirt,
     Grass,
+    Sand,
+    Stone,
 }
 
 #[derive(Resource, Clone, Default)]
@@ -20,16 +21,17 @@ impl VoxelWorldConfig for MyMainWorld {
 
     fn texture_index_mapper(
         &self,
-    ) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
+    ) -> Arc<dyn Fn(Self::MaterialIndex) -> u32 + Send + Sync> {
         Arc::new(|vox_mat| match vox_mat {
-            BlockTexture::SnowyBrick => [0, 1, 2],
-            BlockTexture::FullBrick => [2, 2, 2],
-            BlockTexture::Grass => [3, 3, 3],
+            BlockTexture::Dirt => 0,
+            BlockTexture::Grass => 1,
+            BlockTexture::Sand => 2,
+            BlockTexture::Stone => 3,
         })
     }
 
     fn voxel_texture(&self) -> Option<(String, u32)> {
-        Some(("example_voxel_texture.png".into(), 4))
+        Some(("example_voxel_atlas.png".into(), 4))
     }
 }
 
@@ -78,40 +80,19 @@ fn create_voxel_scene(mut voxel_world: VoxelWorld<MyMainWorld>) {
     }
 
     // Some bricks
-    voxel_world.set_voxel(
-        IVec3::new(0, 0, 0),
-        WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    );
-    voxel_world.set_voxel(
-        IVec3::new(1, 0, 0),
-        WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    );
-    voxel_world.set_voxel(
-        IVec3::new(0, 0, 1),
-        WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    );
-    voxel_world.set_voxel(
-        IVec3::new(0, 0, -1),
-        WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    );
+    voxel_world.set_voxel(IVec3::new(0, 0, 0), WorldVoxel::Solid(BlockTexture::Dirt));
+    voxel_world.set_voxel(IVec3::new(1, 0, 0), WorldVoxel::Solid(BlockTexture::Dirt));
+    voxel_world.set_voxel(IVec3::new(0, 0, 1), WorldVoxel::Solid(BlockTexture::Dirt));
+    voxel_world.set_voxel(IVec3::new(0, 0, -1), WorldVoxel::Solid(BlockTexture::Dirt));
     voxel_world.set_voxel(
         IVec3::new(-1, 0, 0),
-        WorldVoxel::Solid(BlockTexture::FullBrick),
+        WorldVoxel::Solid(BlockTexture::Stone),
     );
     voxel_world.set_voxel(
         IVec3::new(-2, 0, 0),
-        WorldVoxel::Solid(BlockTexture::FullBrick),
+        WorldVoxel::Solid(BlockTexture::Stone),
     );
-    voxel_world.set_voxel(
-        IVec3::new(-1, 1, 0),
-        WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    );
-    voxel_world.set_voxel(
-        IVec3::new(-2, 1, 0),
-        WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    );
-    voxel_world.set_voxel(
-        IVec3::new(0, 1, 0),
-        WorldVoxel::Solid(BlockTexture::SnowyBrick),
-    );
+    voxel_world.set_voxel(IVec3::new(-1, 1, 0), WorldVoxel::Solid(BlockTexture::Sand));
+    voxel_world.set_voxel(IVec3::new(-2, 1, 0), WorldVoxel::Solid(BlockTexture::Sand));
+    voxel_world.set_voxel(IVec3::new(0, 1, 0), WorldVoxel::Solid(BlockTexture::Sand));
 }

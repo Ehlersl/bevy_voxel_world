@@ -27,13 +27,13 @@ impl VoxelWorldConfig for MainWorld {
 
     fn texture_index_mapper(
         &self,
-    ) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
+    ) -> Arc<dyn Fn(Self::MaterialIndex) -> u32 + Send + Sync> {
         Arc::new(|mat| match mat {
-            0 => [0, 0, 0],
-            1 => [1, 1, 1],
-            2 => [2, 2, 2],
-            3 => [3, 3, 3],
-            _ => [0, 0, 0],
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            3 => 3,
+            _ => 0,
         })
     }
 }

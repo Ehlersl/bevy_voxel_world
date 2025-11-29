@@ -39,13 +39,13 @@ impl VoxelWorldConfig for MainWorld {
 
     fn texture_index_mapper(
         &self,
-    ) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
+    ) -> Arc<dyn Fn(Self::MaterialIndex) -> u32 + Send + Sync> {
         Arc::new(|mat| match mat {
-            0 => [0, 0, 0],
-            1 => [1, 1, 1],
-            2 => [2, 2, 2],
-            3 => [3, 3, 3],
-            _ => [0, 0, 0],
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            3 => 3,
+            _ => 0,
         })
     }
 }
@@ -58,12 +58,12 @@ impl VoxelWorldConfig for SecondWorld {
     type MaterialIndex = u8;
     type ChunkUserBundle = ();
 
-    fn texture_index_mapper(&self) -> Arc<dyn Fn(u8) -> [u32; 3] + Send + Sync> {
+    fn texture_index_mapper(&self) -> Arc<dyn Fn(u8) -> u32 + Send + Sync> {
         Arc::new(|vox_mat: u8| match vox_mat {
-            RED => [1, 1, 1],
-            GREEN => [2, 2, 2],
-            BLUE => [3, 3, 3],
-            _ => [3, 3, 3],
+            RED => 1,
+            GREEN => 2,
+            BLUE => 3,
+            _ => 3,
         })
     }
 }

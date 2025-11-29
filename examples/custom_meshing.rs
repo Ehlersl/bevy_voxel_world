@@ -45,13 +45,13 @@ impl VoxelWorldConfig for MainWorld {
 
     fn texture_index_mapper(
         &self,
-    ) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
+    ) -> Arc<dyn Fn(Self::MaterialIndex) -> u32 + Send + Sync> {
         Arc::new(|mat| match mat {
-            0 => [0, 0, 0],
-            1 => [1, 1, 1],
-            2 => [2, 2, 2],
-            3 => [3, 3, 3],
-            _ => [0, 0, 0],
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            3 => 3,
+            _ => 0,
         })
     }
 
@@ -92,7 +92,7 @@ impl VoxelWorldConfig for MainWorld {
                     let mut positions = Vec::with_capacity(num_vertices);
                     let mut normals = Vec::with_capacity(num_vertices);
                     let mut tex_coords = Vec::with_capacity(num_vertices);
-                    let mut material_types = Vec::with_capacity(num_vertices);
+                    let mut material_rows = Vec::with_capacity(num_vertices);
 
                     for (group, face) in buffer.quads.groups.into_iter().zip(faces.into_iter()) {
                         for quad in group.into_iter() {
@@ -114,14 +114,14 @@ impl VoxelWorldConfig for MainWorld {
                             ));
 
                             let voxel_index = PaddedChunkShape::linearize(quad.minimum) as usize;
-                            let material_type = match voxels[voxel_index] {
+                            let material_row = match voxels[voxel_index] {
                                 // Here we call the texture index mapper function to get the texture index
                                 // for the material type of the voxel
                                 WorldVoxel::Solid(mt) => texture_index_mapper(mt),
-                                _ => [1, 1, 1],
+                                _ => 1,
                             };
-                            material_types
-                                .extend(std::iter::repeat_n(material_type, 4));
+                            material_rows
+                                .extend(std::iter::repeat_n(material_row, 4));
                         }
                     }
 
@@ -143,7 +143,7 @@ impl VoxelWorldConfig for MainWorld {
                     );
                     render_mesh.insert_attribute(
                         ATTRIBUTE_TEX_INDEX,
-                        VertexAttributeValues::Uint32x3(material_types),
+                        VertexAttributeValues::Uint32(material_rows),
                     );
                     render_mesh
                         .insert_attribute(Mesh::ATTRIBUTE_COLOR, vec![[1.0; 4]; num_vertices]);

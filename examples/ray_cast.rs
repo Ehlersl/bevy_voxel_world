@@ -5,9 +5,10 @@ use bevy::prelude::*;
 use bevy_voxel_world::prelude::*;
 
 // Declare materials as consts for convenience
-const SNOWY_BRICK: u8 = 0;
-const FULL_BRICK: u8 = 1;
-const GRASS: u8 = 2;
+const DIRT: u8 = 0;
+const GRASS: u8 = 1;
+const SAND: u8 = 2;
+const STONE: u8 = 3;
 
 #[derive(Resource, Clone, Default)]
 struct MyMainWorld;
@@ -16,19 +17,18 @@ impl VoxelWorldConfig for MyMainWorld {
     type MaterialIndex = u8;
     type ChunkUserBundle = ();
 
-    fn texture_index_mapper(
-        &self,
-    ) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
+    fn texture_index_mapper(&self) -> Arc<dyn Fn(Self::MaterialIndex) -> u32 + Send + Sync> {
         Arc::new(|vox_mat: u8| match vox_mat {
-            SNOWY_BRICK => [0, 1, 2],
-            FULL_BRICK => [2, 2, 2],
-            GRASS => [3, 3, 3],
-            _ => [3, 3, 3],
+            DIRT => 0,
+            GRASS => 1,
+            SAND => 2,
+            STONE => 3,
+            _ => 0,
         })
     }
 
     fn voxel_texture(&self) -> Option<(String, u32)> {
-        Some(("example_voxel_texture.png".into(), 4))
+        Some(("example_voxel_atlas.png".into(), 4))
     }
 }
 
@@ -95,15 +95,15 @@ fn create_voxel_scene(mut voxel_world: VoxelWorld<MyMainWorld>) {
     }
 
     // Some bricks
-    voxel_world.set_voxel(IVec3::new(0, 0, 0), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(1, 0, 0), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(0, 0, 1), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(0, 0, -1), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(-1, 0, 0), WorldVoxel::Solid(FULL_BRICK));
-    voxel_world.set_voxel(IVec3::new(-2, 0, 0), WorldVoxel::Solid(FULL_BRICK));
-    voxel_world.set_voxel(IVec3::new(-1, 1, 0), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(-2, 1, 0), WorldVoxel::Solid(SNOWY_BRICK));
-    voxel_world.set_voxel(IVec3::new(0, 1, 0), WorldVoxel::Solid(SNOWY_BRICK));
+    voxel_world.set_voxel(IVec3::new(0, 0, 0), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(1, 0, 0), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(0, 0, 1), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(0, 0, -1), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(-1, 0, 0), WorldVoxel::Solid(STONE));
+    voxel_world.set_voxel(IVec3::new(-2, 0, 0), WorldVoxel::Solid(STONE));
+    voxel_world.set_voxel(IVec3::new(-1, 1, 0), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(-2, 1, 0), WorldVoxel::Solid(DIRT));
+    voxel_world.set_voxel(IVec3::new(0, 1, 0), WorldVoxel::Solid(DIRT));
 }
 
 fn update_cursor_cube(
@@ -137,6 +137,6 @@ fn mouse_button_input(
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         let vox = cursor_cube.single().unwrap();
-        voxel_world.set_voxel(vox.voxel_pos, WorldVoxel::Solid(FULL_BRICK));
+        voxel_world.set_voxel(vox.voxel_pos, WorldVoxel::Solid(STONE));
     }
 }

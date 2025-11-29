@@ -43,12 +43,12 @@ impl VoxelWorldConfig for MyMainWorld {
 
     fn texture_index_mapper(
         &self,
-    ) -> Arc<dyn Fn(Self::MaterialIndex) -> [u32; 3] + Send + Sync> {
+    ) -> Arc<dyn Fn(Self::MaterialIndex) -> u32 + Send + Sync> {
         Arc::new(|vox_mat: u8| match vox_mat {
-            SNOWY_BRICK => [0, 1, 2],
-            FULL_BRICK => [2, 2, 2],
-            GRASS => [3, 3, 3],
-            _ => [3, 3, 3],
+            SNOWY_BRICK => 0,
+            FULL_BRICK => 1,
+            GRASS => 2,
+            _ => 2,
         })
     }
 
