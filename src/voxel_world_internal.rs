@@ -253,7 +253,7 @@ where
                         if queue_pos == chunk_position {
                             continue;
                         }
-    
+
                         let chunk_min_y = queue_pos.y * CHUNK_SIZE_I;
                         let chunk_max_y = chunk_min_y + CHUNK_SIZE_I;
 
@@ -517,7 +517,7 @@ where
         let mut updated_chunks = HashSet::<(Entity, IVec3)>::new();
 
         for (position, voxel) in buffer.iter() {
-             if position.y < min_y || position.y >= max_y {
+            if position.y < min_y || position.y >= max_y {
                 continue;
             }
 

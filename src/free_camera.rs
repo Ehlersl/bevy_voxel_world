@@ -12,11 +12,7 @@ use bevy::{
         resource::Resource,
         system::{Commands, Query, Res, ResMut},
     },
-    input::{
-        ButtonInput,
-        keyboard::KeyCode,
-        mouse::AccumulatedMouseMotion,
-    },
+    input::{keyboard::KeyCode, mouse::AccumulatedMouseMotion, ButtonInput},
     math::{EulerRot, Quat, Vec2, Vec3},
     time::Time,
     transform::components::Transform,
@@ -114,10 +110,8 @@ impl Default for FreeCamSettings {
     }
 }
 
-fn spawn_freecam<W>(
-    mut commands: Commands,
-    q_cam: Query<Entity, With<FreeCam>>,
-) where
+fn spawn_freecam<W>(mut commands: Commands, q_cam: Query<Entity, With<FreeCam>>)
+where
     W: Send + Sync + 'static,
 {
     if !q_cam.is_empty() {

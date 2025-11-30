@@ -82,14 +82,14 @@ impl VoxelFace {
 impl From<VoxelFace> for Vec3 {
     fn from(face: VoxelFace) -> Self {
         match face {
-            VoxelFace::Top    =>  Vec3::Y,
+            VoxelFace::Top => Vec3::Y,
             VoxelFace::Bottom => -Vec3::Y,
 
-            VoxelFace::North  => -Vec3::Z,
-            VoxelFace::South  =>  Vec3::Z,
+            VoxelFace::North => -Vec3::Z,
+            VoxelFace::South => Vec3::Z,
 
-            VoxelFace::East   =>  Vec3::X,
-            VoxelFace::West   => -Vec3::X,
+            VoxelFace::East => Vec3::X,
+            VoxelFace::West => -Vec3::X,
         }
     }
 }

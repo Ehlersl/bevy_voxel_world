@@ -2,6 +2,7 @@ mod chunk;
 mod chunk_map;
 mod configuration;
 mod debug_draw;
+mod free_camera;
 mod mesh_cache;
 mod meshing;
 mod plugin;
@@ -10,11 +11,11 @@ mod voxel_material;
 mod voxel_traversal;
 mod voxel_world;
 mod voxel_world_internal;
-mod free_camera;
 
 pub mod prelude {
     pub use crate::chunk::{Chunk, NeedsDespawn};
     pub use crate::configuration::*;
+    pub use crate::free_camera::*;
     pub use crate::plugin::VoxelWorldPlugin;
     pub use crate::voxel::{VoxelFace, WorldVoxel, VOXEL_SIZE};
     pub use crate::voxel_world::{
@@ -23,7 +24,6 @@ pub mod prelude {
     pub use crate::voxel_world::{
         ChunkWillDespawn, ChunkWillRemesh, ChunkWillSpawn, ChunkWillUpdate,
     };
-    pub use crate::free_camera::*;
 }
 
 pub mod custom_meshing {

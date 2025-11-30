@@ -41,9 +41,9 @@ pub(crate) struct StandardVoxelMaterial {
     pub voxels_texture: Handle<Image>,
 
     #[uniform(102)]
-    pub atlas_inv_cols: f32,  // 1.0 / 3.0
+    pub atlas_inv_cols: f32, // 1.0 / 3.0
     #[uniform(103)]
-    pub atlas_inv_rows: f32,  // 1.0 / rows
+    pub atlas_inv_rows: f32, // 1.0 / rows
 }
 
 impl MaterialExtension for StandardVoxelMaterial {

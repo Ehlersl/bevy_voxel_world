@@ -84,14 +84,8 @@ fn create_voxel_scene(mut voxel_world: VoxelWorld<MyMainWorld>) {
     voxel_world.set_voxel(IVec3::new(1, 0, 0), WorldVoxel::Solid(BlockTexture::Dirt));
     voxel_world.set_voxel(IVec3::new(0, 0, 1), WorldVoxel::Solid(BlockTexture::Dirt));
     voxel_world.set_voxel(IVec3::new(0, 0, -1), WorldVoxel::Solid(BlockTexture::Dirt));
-    voxel_world.set_voxel(
-        IVec3::new(-1, 0, 0),
-        WorldVoxel::Solid(BlockTexture::Stone),
-    );
-    voxel_world.set_voxel(
-        IVec3::new(-2, 0, 0),
-        WorldVoxel::Solid(BlockTexture::Stone),
-    );
+    voxel_world.set_voxel(IVec3::new(-1, 0, 0), WorldVoxel::Solid(BlockTexture::Stone));
+    voxel_world.set_voxel(IVec3::new(-2, 0, 0), WorldVoxel::Solid(BlockTexture::Stone));
     voxel_world.set_voxel(IVec3::new(-1, 1, 0), WorldVoxel::Solid(BlockTexture::Sand));
     voxel_world.set_voxel(IVec3::new(-2, 1, 0), WorldVoxel::Solid(BlockTexture::Sand));
     voxel_world.set_voxel(IVec3::new(0, 1, 0), WorldVoxel::Solid(BlockTexture::Sand));
