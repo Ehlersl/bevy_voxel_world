@@ -1,6 +1,6 @@
-use bevy::image::ImageSampler;
 use bevy::{
     asset::uuid_handle,
+    image::{ImageAddressMode, ImageFilterMode},
     mesh::{MeshVertexAttribute, MeshVertexBufferLayoutRef, VertexAttributeDescriptor},
     pbr::{MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline},
     prelude::*,
@@ -76,21 +76,25 @@ impl MaterialExtension for StandardVoxelMaterial {
 }
 
 pub(crate) fn prepare_texture(
-    asset_server: Res<AssetServer>,
     mut loading_texture: ResMut<LoadingTexture>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    if loading_texture.is_loaded
-        || !matches!(
-            asset_server.get_load_state(loading_texture.handle.clone().id()),
-            Some(bevy::asset::LoadState::Loaded)
-        )
-    {
+    if loading_texture.is_loaded {
         return;
     }
+
+    let Some(image) = images.get_mut(&loading_texture.handle) else {
+        return;
+    };
+
+    let descriptor = image.sampler.get_or_init_descriptor();
+    descriptor.mag_filter = ImageFilterMode::Nearest;
+    descriptor.min_filter = ImageFilterMode::Nearest;
+    descriptor.mipmap_filter = ImageFilterMode::Nearest;
+    descriptor.address_mode_u = ImageAddressMode::ClampToEdge;
+    descriptor.address_mode_v = ImageAddressMode::ClampToEdge;
+    descriptor.address_mode_w = ImageAddressMode::ClampToEdge;
+    descriptor.lod_max_clamp = 0.0;
+
     loading_texture.is_loaded = true;
-
-    let image = images.get_mut(&loading_texture.handle).unwrap();
-
-    image.sampler = ImageSampler::nearest();
 }

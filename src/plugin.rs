@@ -153,12 +153,9 @@ where
                 app.add_plugins(material_plugin);
             }
 
-            let mut preloaded_texture = true;
-
             // Use built-in default texture if no texture is specified.
             let (image_handle, rows) = match self.config.voxel_texture() {
                 Some((img_path, rows)) => {
-                    preloaded_texture = false;
                     let asset_server = app.world().get_resource::<AssetServer>().unwrap();
                     (asset_server.load(img_path), rows)
                 }
@@ -167,7 +164,7 @@ where
                         include_bytes!("shaders/default_atlas.png"),
                         ImageType::MimeType("image/png"),
                         CompressedImageFormats::default(),
-                        false,
+                        true,
                         ImageSampler::Default,
                         RenderAssetUsages::default(),
                     )
@@ -198,7 +195,7 @@ where
             });
 
             app.insert_resource(LoadingTexture {
-                is_loaded: preloaded_texture,
+                is_loaded: false,
                 handle: image_handle,
             });
             app.insert_resource(VoxelWorldMaterialHandle { handle: mat_handle });
