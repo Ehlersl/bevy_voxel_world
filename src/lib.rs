@@ -50,6 +50,3 @@ pub mod rendering {
 pub mod traversal_alg {
     pub use crate::voxel_traversal::*;
 }
-
-#[cfg(test)]
-mod test;

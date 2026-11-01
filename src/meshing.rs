@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use block_mesh::{
-    visible_block_faces, OrientedBlockFace, UnitQuadBuffer, Voxel, VoxelVisibility,
-    RIGHT_HANDED_Y_UP_CONFIG,
+    greedy_quads, GreedyQuadsBuffer, OrientedBlockFace, QuadBuffer, UnorientedQuad, Voxel,
+    VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG,
 };
 
 use bevy::{
@@ -14,7 +14,7 @@ use bevy::{
 use ndshape::ConstShape;
 
 use crate::{
-    chunk::{PaddedChunkShape, CHUNK_SIZE_U},
+    chunk::{PaddedChunkShape, CHUNK_SIZE_U, PADDED_CHUNK_SIZE},
     prelude::TextureIndexMapperFn,
     voxel::WorldVoxel,
     voxel_material::ATTRIBUTE_TEX_INDEX,
@@ -23,15 +23,15 @@ use crate::{
 pub type VoxelArray<I> = Arc<[WorldVoxel<I>; PaddedChunkShape::SIZE as usize]>;
 
 /// Generate a mesh for the given chunks
-pub fn generate_chunk_mesh<I: PartialEq + Copy>(
+pub fn generate_chunk_mesh<I: PartialEq + Eq + Default + Copy>(
     voxels: VoxelArray<I>,
     _pos: IVec3,
     texture_index_mapper: TextureIndexMapperFn<I>,
 ) -> Mesh {
     let faces = RIGHT_HANDED_Y_UP_CONFIG.faces;
-    let mut buffer = UnitQuadBuffer::new();
+    let mut buffer = GreedyQuadsBuffer::new(voxels.len());
 
-    visible_block_faces(
+    greedy_quads(
         &*voxels,
         &PaddedChunkShape {},
         [0; 3],
@@ -40,12 +40,12 @@ pub fn generate_chunk_mesh<I: PartialEq + Copy>(
         &mut buffer,
     );
 
-    mesh_from_quads(buffer, &faces, &voxels, texture_index_mapper)
+    mesh_from_quads(buffer.quads, &faces, &voxels, texture_index_mapper)
 }
 
-/// Create a Bevy Mesh from a block_mesh::UnitQuadBuffer
+/// Create a Bevy Mesh from a block_mesh::QuadBuffer
 pub fn mesh_from_quads<I: PartialEq + Copy>(
-    quads: UnitQuadBuffer,
+    quads: QuadBuffer,
     faces: &[OrientedBlockFace; 6],
     voxels: &VoxelArray<I>,
     texture_index_mapper: TextureIndexMapperFn<I>,
@@ -67,24 +67,48 @@ pub fn mesh_from_quads<I: PartialEq + Copy>(
         let face_normals = face.quad_mesh_normals();
 
         for quad in group.into_iter() {
-            let ao = face_aos(&quad.minimum, &normal, &voxels);
+            // Subdivide greedy quad back into unit tiles for per-voxel AO while keeping UV tiling.
+            let corners = face.quad_corners(&quad);
+            let corner0 = corners[0].as_ivec3();
+            let u_dir_raw =
+                (corners[1].as_ivec3() - corner0) / (quad.width as i32).max(1);
+            let v_dir_raw =
+                (corners[2].as_ivec3() - corner0) / (quad.height as i32).max(1);
+            let u_dir = IVec3::new(u_dir_raw.x, u_dir_raw.y, u_dir_raw.z);
+            let v_dir = IVec3::new(v_dir_raw.x, v_dir_raw.y, v_dir_raw.z);
+            let base_min =
+                IVec3::new(quad.minimum[0] as i32, quad.minimum[1] as i32, quad.minimum[2] as i32);
 
-            aos.extend_from_slice(&ao);
-            indices.extend_from_slice(&face.quad_mesh_indices(positions.len() as u32));
-            positions.extend_from_slice(&face.quad_mesh_positions(&quad.into(), 1.0));
-            normals.extend_from_slice(&face_normals);
-            tex_coords.extend_from_slice(&face.tex_coords(
-                RIGHT_HANDED_Y_UP_CONFIG.u_flip_face,
-                true,
-                &quad.into(),
-            ));
+            for du in 0..quad.width {
+                for dv in 0..quad.height {
+                    let offset = u_dir * du as i32 + v_dir * dv as i32;
+                    let tile_min = base_min + offset;
+                    let tile = UnorientedQuad {
+                        minimum: tile_min.as_uvec3().to_array(),
+                        width: 1,
+                        height: 1,
+                    };
 
-            let voxel_index = PaddedChunkShape::linearize(quad.minimum) as usize;
-            let material_row = match voxels[voxel_index] {
-                WorldVoxel::Solid(mt) => texture_index_mapper(mt),
-                _ => 0,
-            };
-            material_rows.extend_from_slice(&[material_row; 4]);
+                    let ao = face_aos(&tile.minimum, &normal, &voxels);
+
+                    aos.extend_from_slice(&ao);
+                    indices.extend_from_slice(&face.quad_mesh_indices(positions.len() as u32));
+                    positions.extend_from_slice(&face.quad_mesh_positions(&tile, 1.0));
+                    normals.extend_from_slice(&face_normals);
+                    tex_coords.extend_from_slice(&face.tex_coords(
+                        RIGHT_HANDED_Y_UP_CONFIG.u_flip_face,
+                        true,
+                        &tile,
+                    ));
+
+                    let voxel_index = PaddedChunkShape::linearize(tile.minimum) as usize;
+                    let material_row = match voxels[voxel_index] {
+                        WorldVoxel::Solid(mt) => texture_index_mapper(mt),
+                        _ => 0,
+                    };
+                    material_rows.extend_from_slice(&[material_row; 4]);
+                }
+            }
         }
     }
 
@@ -157,6 +181,11 @@ fn face_aos<I: PartialEq + Copy>(
     face_normal: &IVec3,
     voxels: &VoxelArray<I>,
 ) -> [u32; 4] {
+    // Guard against boundary sampling when greedy quads touch padded borders.
+    if voxel_pos.iter().any(|&c| c == 0 || c + 1 >= PADDED_CHUNK_SIZE) {
+        return [3, 3, 3, 3];
+    }
+
     let [x, y, z] = *voxel_pos;
 
     match *face_normal {

@@ -160,7 +160,7 @@ pub trait VoxelWorldConfig: Resource + Default + Clone {
     fn init_root(&self, mut _commands: Commands, _root: Entity) {}
 }
 
-pub fn default_chunk_meshing_delegate<I: PartialEq + Copy, UB: Bundle>(
+pub fn default_chunk_meshing_delegate<I: PartialEq + Eq + Default + Copy, UB: Bundle>(
     pos: IVec3,
 ) -> ChunkMeshingFn<I, UB> {
     Box::new(

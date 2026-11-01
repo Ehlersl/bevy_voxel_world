@@ -107,13 +107,9 @@ fn fragment(
         f32(in.tex_row) * tile_size.y,
     );
 
-    // Note: "Texture Atlas Bleeding"
-    // UV interpolation slightly exceeds the 0–1 tile range, causing samples
-    // to pull texels from neighboring atlas tiles. This appears as white or
-    // bright lines between blocks, even with Nearest/ClampToEdge.
-    // TODO: Compute tile padding based on actual texel size (0.5–1 texel),
-    let padding = 0.001;
-    let tile_uv = clamp(in.uv, vec2<f32>(padding), vec2<f32>(1.0 - padding));
+    let atlas_dims     = vec2<f32>(textureDimensions(atlas_texture, 0));
+    let padding = 0.5 / (atlas_dims * tile_size);
+    let tile_uv = clamp(fract(in.uv), padding, vec2<f32>(1.0) - padding);
     let atlas_uv = tile_uv * tile_size + uv_offset;
 
     pbr_input.material.base_color = textureSample(
